@@ -52,9 +52,9 @@ This steps requires some large memory, such as ~ 4 Gb. So your computer needs at
 - Display the levels of `type`
 
 ::: {.callout-tip}
-#### Plot the count of each level from the `type` column.
+#### Count of each level from the `type` column.
 
-Even if counting can be done manually with `dplyr`, try to be lazy and let `ggplot2` doing the job
+Even if counting can be done manually with `dplyr`. Later, try to be lazy and let `ggplot2` doing the job
 :::
 
 ::: {.callout-notes}
