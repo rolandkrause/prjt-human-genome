@@ -1,131 +1,152 @@
 ---
-title: "R Introduction - Exercises"
-name: "Please fill"
-date: "Please add"
-format: html
-editor: source
+title: "Human genome annotation"
+author: "Aurelien Ginolhac, Eric Koncina"
+date: "2023-10-02"
 ---
 
-Fill in the exercises the code.
-Ensure that the script runs in full and push to your repository.
-
-### Exercise 1
-1. Create a vector of the letters A, B and C.
-
-```{r}
-# Your answer here
-```
 
 
-2. Assign the vector to the variable `my_letters`.
+## Human genes analysis
 
-```{r}
-# Your answer here
-```
+> Parse [GENCODE](http://www.gencodegenes.org/) data to summarise some key features of the human genome.
 
-
-3. Check the what happens when you run letters (just this) on the command line.
-
-```{r}
-# Your answer here
-```
+### Setup a project repository
+The project will handle large data sets. 
+Ensure that the code can be run in the evaluation completely, i.e. that data is download, not stored in the repository. This will require an installation script.
 
 
-4. What happens when you concatenate two vectors? Use `my_letters` twice
+### Download data, set-up
 
-```{r}
-# Your answer here
-```
+- Go on the [latest human release](https://www.gencodegenes.org/human/) of **GENCODE** .
 
-
-5. Add the number 1 to letters. What happens to the type of the vector?
-
-```{r}
-# Your answer here
-```
+- Download the **Comprehensive gene annotation** as _Content_ and **CHR** as _Regions_.
+Pick the **`GFF3`** format.
 
 
-### Exercise 2
+- Install the Bioconductor package  [`rtracklayer`](http://bioconductor.org/packages/release/bioc/html/rtracklayer.html) to parse GFF files
 
+- The environment management tool `renv` should be installed in your global library. Initiate the project and store the state of package using `renv::snapshot()`. Check the `renv.lock` file to ensure that all required packages are listed. 
 
-1. Create a vector `my_vec` with the numbers from 1 through 8.
+### Import the GFF file
 
-```{r}
-# Your answer here
-```
+- Import the GFF from GENCODE using the `import()` function from the package `rtracklayer`. Assign the result as `gencode`.
 
-2. Apply the operation `+2` to the vector/
-```{r}
-# Your answer here
-```
+::: {.callout-warning}
+This steps requires some large memory, such as ~ 4 Gb. So your computer needs at least 8 Gb to perform this project. The object `gencode` below is 1.09 Gb alone.
+:::
 
-3. Add the vector containing 1, 2, 3, 4 to my_vec. What do you observe?
+::: {.callout-tip}
+`import()` returns an object of class GRanges. Converting to a `tibble` is more than encouraged.\
+**Of note:** This operation takes about 2-3 minutes. You may want to save the object while testing your workflow. Moreover, the warning about 
+`Warning in as.data.frame(mcols(x), ...): Arguments in '...' ignored` could be ignored.
+:::
 
-```{r}
-# Your answer here
-```
+### Explore the human genome
 
-### Exercise 3
+- What are the dimensions of this table?
+  
 
-
-1.  Consider the R output of the matrix below:
-```
-   [,1] [,2]
-   [1,]    4    1
-   [2,]    9    5
-   [3,]   10    7
-```
-1. What was one of the correct commands used to write this matrix?
-```{r}
-# Your answer here
-```
+- There are too many lines for the number of genes we expect for the human genome (_i.e_ ~ 20,000 genes). Look at the column `type`. What kind of data is this column?
 
   
-2. Assign the matrix as `A`
-```{r}
-# Your answer here
-```
+- Display the levels of `type`
+
+::: {.callout-tip}
+#### Plot the count of each level from the `type` column.
+
+Even if counting can be done manually with `dplyr`, try to be lazy and let `ggplot2` doing the job
+:::
+
+::: {.callout-notes}
+- sorting the x-axis elements based on the count greatly help the reader to appreciate numbers. `forcats::infreq()` is your friend
+- flipping coordinates help to read the x-axis labels. You can map the `y` aesthetic to `type` . 
+- report the counts inside the bars to highlight them. Use `stat = "count"` in `geom_text()`. Using a fixed coordinate is also fine.
+- a lighter theme like `theme_classic()` is usually better
+- title and subtitle in the `labs()` give some context
+- large numbers are usually easier to read with thousand comma separators. `scales::comma()` does it for you
+
+:::
+
+
+
+- From the previous plot, how many **gene** entries do you have?
   
-3. Check the dimensions
-```{r}
-# Your answer here
-```
+
+- Plot the distribution of the number of transcripts per gene, highlight the mean and median
+
+::: {.callout-tip}
+The best columns for transcripts and genes are `transcripts_id` and `gene_id`.
+By distribution, we expect the density or binned histogram of the univariate number of transcript per gene. 
+Depending on the distribution shape, log-transforming the counts is an option
+:::
+
+- How many transcripts per gene do you observe using either the mean or the median in linear scale?
   
-4. Extract the element `5`
-```{r}
-# Your answer here
-```
-  
-5. Add the vector `c(0,0,0)` as a new column and update `A`
-```{r}
-# Your answer here
-```
+- How do you explain the discrepancy between mean or median?
 
-6. Modify the element 4 to `0`
-```{r}
-# Your answer here
-```
-  
-7. Compute the transpose of `A`
-```{r}
-# Your answer here
-```
+### Focus on genes
 
+Now, let's look at genes only.
 
-### Exercise 4
+- Filter the `gencode` to restrict rows where type is **gene**, save as `genes`
 
-1. Create a function that sums up two values even if provided as characters values
+- Plot the counts of `gene_type` for `genes` in the same way you did the `type`. Sorting the counts. 
+You can restrict to counts > 500 to avoid showing all the smaller categories
 
-```{r}
-# Your answer here
-```
+We can observe quite many unique `gene_type`, even restriction to the ones that are present > 500 times.
+
+- Collapse the levels of `gene_type` to create 4 meta-categories:
+    + protein_coding as **prot_coding**
+    + pseudogene as **pseudo**
+    + **RNA**
+    + lump the rest as **rest**
+
+::: {.callout-tip}
+`fct_collapse()` combine with `fct_other()` from the `forcats` package are your best friend.
+See below an example of collapsing levels with "RNA", then "c" and "d" and finally group the rest in a "rest" level.
+:::
 
 
-### Exercise 5
-
-1. Create a function that returns the mean, median and standard deviation
 
 
-### Exercise 6
-1. Create a pipe statement that counts the number of NAs in vector.
-The output of `c('1' , "a", NA, "2", NA)` should be 2.
+### Genes per chromosome
+
+Are the genes uniformly distributed across the genome? To address this question, we want to count the number of genes per chromosome and normalizing by the chromosome length.
+
+You can use this [file from USCS](http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes) to get the chromosome sizes.
+
+- plot the gene density per chromosome and facet per the 4 meta categories
+
+
+::: {.callout-tip}
+- For the chromosome sizes, the file is a tabulated file with no header. You can delete all the random and unplaced contigs and keep only the 23 chromosomes + the mitochondria. See example below 
+- Dor the density, express the number of genes per mega-bases
+- For facets, one column makes the plot easier to read
+he:::
+
+
+
+
+- Leaving out the **pseudogene** and **other** categories, what is striking in the results? What is so special with the MT?
+
+- Re-plot filtering out the mitochondria and keeping only **prot_coding** and **RNA**
+
+- What is the chromosome with the highest gene density?
+
+### Gene sizes
+
+How the gene sizes distribution look like? Here we are several questions, we are need to split sequentially.
+Also, we keep the 4 meta-categories previously obtained since they represent different kind of genes.
+
+- plot the distribution of **gene** sizes using a density geometry filled by meta-category. The column `width` is directly giving you the length in base pairs.
+
+::: {.callout-tip}
+- some genes have an extreme lengths, log-transformation must be evaluated.
+- to keep the axis info in linear scale, you can use the function `annotation_logticks()`
+- densities have by default no transparency, you should play with the `alpha` parameter
+:::
+
+- Which meta-category has the most normal distribution after log-transformation? And the largest average size?
+
+- What is roughly the **mode** of this normal distribution after log-transformation?
+
