@@ -4,6 +4,10 @@ author: "Aurelien Ginolhac, Eric Koncina"
 date: "2023-10-02"
 ---
 
+```{r}
+#| include: false
+library(tidyverse)
+```
 
 
 ## Human genes analysis
@@ -61,7 +65,7 @@ Even if counting can be done manually with `dplyr`. Later, try to be lazy and le
 - sorting the x-axis elements based on the count greatly help the reader to appreciate numbers. `forcats::infreq()` is your friend
 - flipping coordinates help to read the x-axis labels. You can map the `y` aesthetic to `type` . 
 - report the counts inside the bars to highlight them. Use `stat = "count"` in `geom_text()`. Using a fixed coordinate is also fine.
-- a lighter theme like `theme_classic()` is usually better
+- a lighter theme like `theme_classic()` is usually better than ggplot's default
 - title and subtitle in the `labs()` give some context
 - large numbers are usually easier to read with thousand comma separators. `scales::comma()` does it for you
 
@@ -104,6 +108,21 @@ We can observe quite many unique `gene_type`, even restriction to the ones that 
 ::: {.callout-tip}
 `fct_collapse()` combine with `fct_other()` from the `forcats` package are your best friend.
 See below an example of collapsing levels with "RNA", then "c" and "d" and finally group the rest in a "rest" level.
+```{r}
+# x a vector of strings
+x <- c("aRNA", "aRNA", "bRNA", "c", "c", "d", "e", "f") 
+# str_subset, will subset a string vector based on a pattern, here: contains "RNA"
+x_rna <- str_subset(x, "RNA")
+x |>
+  # collapse the rna together (aRNA, bRNA) 
+  fct_collapse(RNA = x_rna,
+               # collapse c and d
+               cd  = c("c", "d")) |>
+  # the rest is lumped into a "rest" category
+  fct_other(keep = c("ab", "cd"),
+            other_level = "rest") 
+```
+
 :::
 
 
@@ -113,16 +132,23 @@ See below an example of collapsing levels with "RNA", then "c" and "d" and final
 
 Are the genes uniformly distributed across the genome? To address this question, we want to count the number of genes per chromosome and normalizing by the chromosome length.
 
-You can use this [file from USCS](http://hgdownload-test.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes) to get the chromosome sizes.
+You can use this [file from USCS](http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes) to get the chromosome sizes.
 
 - plot the gene density per chromosome and facet per the 4 meta categories
 
 
 ::: {.callout-tip}
-- For the chromosome sizes, the file is a tabulated file with no header. You can delete all the random and unplaced contigs and keep only the 23 chromosomes + the mitochondria. See example below 
-- Dor the density, express the number of genes per mega-bases
+- For the chromosome sizes, the file is a tabulated file with no header. You can delete all the random and unplaced contigs and keep only the 23 chromosomes + the mitochondria. See example below.
+
+```{r}
+chr <- c("chr1", "chr2", "MT", "chr6_GL000255v2_alt", "chr16_KI270728v1_random")
+# accessory chromosomes have an underscore
+str_subset(chr, "_", negate = TRUE)
+```
+
+- For the density, express the number of genes per mega-bases
 - For facets, one column makes the plot easier to read
-he:::
+:::
 
 
 
